@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Firebase Login</title>
+    
+    <script type="module" src="{{ url_for('static', path='/firebase-login.js') }}"></script>
+  </head>
+  <body>
+    <div id="login-box">
+      <label>Email:</label>
+      <input type="email" id="email"><br/>
+      <label>Password:</label>
+      <input type="password" id="password"><br/>
+      <button id="login">Login</button>
+      <button id="sign-up">Sign Up</button>
+    </div>
+
+    <button id="sign-out" hidden>Sign out</button>
+
+    {% if user_token %}
+      <p>User email: {{ user_token.get('email', 'No Email Found') }}</p>
+      <p>Error message: {{ error_message }}</p>
+    {% else %}
+      <p>No user logged in.</p>
+    {% endif %}
+  </body>
+</html>
