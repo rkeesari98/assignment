@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Driver</title>
+</head>
+<body>
+    {% if error %}
+        <script>alert("{{ error }}");</script>
+    {% endif %}
+    <h2>Add a New Team</h2>
+    <form action="/teams/create" method="post">
+        <input type="text" name="name" placeholder="Team Name" required><br>
+        <input type="number" name="year_founded" placeholder="Year Founded" required><br>
+        <input type="number" name="total_pole_positions" placeholder="Total Pole Positions"><br>
+        <input type="number" name="total_race_wins" placeholder="Total Race Wins"><br>
+        <input type="number" name="total_constructor_titles" placeholder="Total Constructor Titles"><br>
+        <input type="number" name="previous_season_position" placeholder="Previous Year Position"><br>
+        <button type="submit">Add Team</button>
+    </form>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Teams List</title>
+</head>
+<body>
+    <h1>Temas List</h1>
+    {% if teams %}
+        <ul>
+            {% for team in teams %}
+                <li>{{ team.name }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No Teams found.</p>
+    {% endif %}
+    <a href="/teams/create">Create New Team</a>
+</body>
+</html>

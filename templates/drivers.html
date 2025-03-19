@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Drivers List</title>
+</head>
+<body>
+    <h1>Drivers List</h1>
+    {% if drivers %}
+        <ul>
+            {% for driver in drivers %}
+                <li>{{ driver.name }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No drivers found.</p>
+    {% endif %}
+    <a href="/drivers/create">Create New Driver</a>
+</body>
+</html>
