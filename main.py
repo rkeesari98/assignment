@@ -9,6 +9,7 @@ from google.cloud import firestore
 from models import Driver, Team,Query
 import starlette.status as status
 from fastapi.responses import RedirectResponse
+from driver_service import DriverService
 
 app = FastAPI()
 
@@ -82,56 +83,19 @@ def driver_form(name: str = Form(...), age: int = Form(...),total_pole_positions
 
 @app.post("/drivers/create", response_class=RedirectResponse)
 def create_driver(driver: Driver = Depends(driver_form)):
-    print(driver)
-    existing_driver = firestore_db.collection('drivers').where('name', '==', driver.name).limit(1).get() 
-    if len(existing_driver) > 0:
+    try:
+        DriverService.create_driver(driver)
         return RedirectResponse(
-            url="/drivers/create?error=Driver%20name%20exists",
+            url="/drivers",
             status_code=303
         )
-    if driver.age < 16:
+    except Exception as e:
+        # Correctly format the error message in the URL
         return RedirectResponse(
-            url="/drivers/create?error=Age%20must%20be%20greater%20than%20 16",
+            url=f"/drivers/create?error={str(e)}",  # Convert the error to a string
             status_code=303
         )
-    if driver.total_pole_positions < 0:
-        return RedirectResponse(
-            url="/drivers/create?error=total_pole_positions%20must%20be%20positive",
-            status_code=303
-        )
-    if driver.total_race_wins < 0:
-        return RedirectResponse(
-            url="/drivers/create?error=total_race_wins%20must%20be%20positive",
-            status_code=303
-        )
-    if driver.total_points_scored < 0:
-        return RedirectResponse(
-            url="/drivers/create?error=total_points_scored%20must%20be%20positive",
-            status_code=303
-        )
-    if driver.total_world_titles < 0:
-        return RedirectResponse(
-            url="/drivers/create?error=total_world_titles%20must%20be%20positive",
-            status_code=303
-        )
-    if driver.total_fastest_laps < 0:
-        return RedirectResponse(
-            url="/drivers/create?error=total_fastest_laps%20must%20be%20positive",
-            status_code=303
-        )
-    
-    # does_team_exist = firestore_db.collection('teams').where('name','==',driver.team).limit(1).get()
-    # if len(does_team_exist)<=0:
-    #    return RedirectResponse(
-    #         url="/drivers/create?error=team%20name%20does%20not%20exists",
-    #         status_code=303
-    #     )
-    
-    firestore_db.collection('drivers').add(driver.dict())
-    return RedirectResponse(
-        url="/drivers/",
-        status_code=303
-    )
+
 
 # @app.get("/drivers",response_class=HTMLResponse)
 # def get_drivers(request:Request):
@@ -285,51 +249,30 @@ def query_teams(query_params: Query = Depends(query_form)):
         status_code=303
     )
 
-@app.get("/drivers",response_class=HTMLResponse)
-def get_drivers(request:Request,
+@app.get("/drivers", response_class=HTMLResponse)
+def get_drivers(request: Request, 
                 attribute: Optional[str] = None, 
-              operator: Optional[str] = None, 
-              value: Optional[str] = None):
-    query = firestore_db.collection('drivers')
-    query_info = None
-    
-    # Apply filter if all parameters are provided
-    if attribute and operator and value:
-        # Convert value to proper type based on attribute
-        if attribute == "name" or attribute=="team":
-            typed_value = value  # Keep as string
-        else:
-            # Convert to int for numeric fields
-            try:
-                typed_value = int(value)
-            except ValueError:
-                drivers = []
-                return templates.TemplateResponse(
-                    "drivers.html",
-                    {"request": request, "drivers": drivers, "error": f"Invalid numeric value: {value}"}
-                )
+                operator: Optional[str] = None, 
+                value: Optional[str] = None):
+    try:
         
-        # Map operator to Firestore comparison
-        operator_map = {
-            "eq": "==",
-            "gt": ">",
-            "lt": "<",
-            "gte": ">=",
-            "lte": "<="
-        }
+        drivers, query_info = DriverService.get_drivers(attribute, operator, value)
         
-        if operator in operator_map:
-            query = query.where(attribute, operator_map[operator], typed_value)
-            query_info = f"{attribute} {operator_map[operator]} {value}"
+        return templates.TemplateResponse(
+            "drivers.html",
+            {"request": request, "drivers": drivers, "query_info": query_info}
+        )
     
-    drivers = [{"id": doc.id, **doc.to_dict()} for doc in query.stream()]
-
-    # Execute query
-    
-    return templates.TemplateResponse(
-        "drivers.html",
-        {"request": request, "drivers": drivers, "query_info": query_info}
-    )
+    except ValueError as e:
+        return templates.TemplateResponse(
+            "drivers.html",
+            {"request": request, "drivers": [], "error": str(e)}
+        )
+    except Exception as e:
+        return templates.TemplateResponse(
+            "drivers.html",
+            {"request": request, "drivers": [], "error": "An error occurred"}
+        )
 
 @app.post("/drivers/query", response_class=RedirectResponse)
 def query_drivers(query_params: Query = Depends(query_form)):
@@ -341,84 +284,38 @@ def query_drivers(query_params: Query = Depends(query_form)):
 
 @app.get("/drivers/{driver_id}", response_class=HTMLResponse)
 def get_driver_by_id(driver_id: str, request: Request):
-    doc_ref = firestore_db.collection("drivers").document(driver_id)
-    doc = doc_ref.get()
-
-    if not doc.exists:
-        return HTMLResponse(content="Driver not found", status_code=404)
-
-    driver = {"id": doc.id, **doc.to_dict()}
-    query = firestore_db.collection("teams")
-    teams = [doc.to_dict() for doc in query.stream()]
-    
-    return templates.TemplateResponse(
-        "add-driver.html",
-        {"request": request, "driver": driver,"teams":teams}
-    )
-
+    try:
+        data = DriverService.get_driver_by_id(driver_id)
+        return templates.TemplateResponse(
+            "add-driver.html",
+            {"request": request, "driver": data['driver'], "teams": data['teams']}
+        )
+    except Exception as e:
+        return HTMLResponse(content=f"Error: {str(e)}", status_code=404)
 
 @app.post("/drivers/{driver_id}", response_class=RedirectResponse)
 def update_driver(driver_id: str, driver: Driver = Depends(driver_form)):
-    print(driver)
-    driver_ref = firestore_db.collection("drivers").document(driver_id)
-    existing_driver = driver_ref.get()
-    
-    if not existing_driver.exists:
+    try:
+        DriverService.update_driver(driver,driver_id)
         return RedirectResponse(
-            url="/drivers?error=Driver%20not%20found",
+            url="/drivers",
             status_code=303
         )
-    if driver.age < 16:
+    except Exception as e:
+        # Correct the URL format to properly inject the error message
         return RedirectResponse(
-            url="/drivers/{}/edit?error=Age%20must%20be%20greater%20than%2016".format(driver_id),
+            url=f"/drivers/{driver_id}?error={str(e)}",  # Use f-string to insert error message
             status_code=303
         )
-    if driver.total_pole_positions < 0:
-        return RedirectResponse(
-            url="/drivers/{}/edit?error=total_pole_positions%20must%20be%20positive".format(driver_id),
-            status_code=303
-        )
-    if driver.total_race_wins < 0:
-        return RedirectResponse(
-            url="/drivers/{}/edit?error=total_race_wins%20must%20be%20positive".format(driver_id),
-            status_code=303
-        )
-    if driver.total_points_scored < 0:
-        return RedirectResponse(
-            url="/drivers/{}/edit?error=total_points_scored%20must%20be%20positive".format(driver_id),
-            status_code=303
-        )
-    if driver.total_world_titles < 0:
-        return RedirectResponse(
-            url="/drivers/{}/edit?error=total_world_titles%20must%20be%20positive".format(driver_id),
-            status_code=303
-        )
-    if driver.total_fastest_laps < 0:
-        return RedirectResponse(
-            url="/drivers/{}/edit?error=total_fastest_laps%20must%20be%20positive".format(driver_id),
-            status_code=303
-        )
-    
-    driver_ref.update(driver.dict())
-    
-    return RedirectResponse(
-        url="/drivers",
-        status_code=303
-    )
 
 @app.delete("/drivers/{driver_id}", response_class=HTMLResponse)
 def delete_driver(driver_id: str, request: Request):
-    doc_ref = firestore_db.collection("drivers").document(driver_id)
-    doc = doc_ref.get()
-
-    if not doc.exists:
+    try:
+        DriverService.delete_driver(driver_id)
+        return RedirectResponse(url="/drivers", status_code=303)
+    except Exception as e:
         return HTMLResponse(content="Driver not found", status_code=404)
-
-    # Proceed to delete the driver
-    doc_ref.delete()
-
-    # Redirect to the /drivers page after deleting
-    return RedirectResponse(url="/drivers", status_code=303)
+    
 
 
 
@@ -497,8 +394,8 @@ def delete_teams(teams_id: str, request: Request):
     if not doc.exists:
         return HTMLResponse(content="Team not found", status_code=404)
 
-    # Proceed to delete the driver
+    
     doc_ref.delete()
 
-    # Redirect to the /drivers page after deleting
+    
     return RedirectResponse(url="/teams", status_code=303)
