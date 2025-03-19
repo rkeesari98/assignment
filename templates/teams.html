@@ -2,19 +2,181 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Teams List</title>
+    <title>F1 Teams Query Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .query-form {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+        select, input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-width: 200px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #e10600;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #c00500;
+        }
+        .reset-btn {
+            background-color: #6c757d;
+            margin-left: 10px;
+        }
+        .reset-btn:hover {
+            background-color: #5a6268;
+        }
+        .team-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .team-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .team-name {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .team-stats {
+            margin-top: 5px;
+            color: #555;
+        }
+        .query-info {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            font-style: italic;
+        }
+        .error {
+            color: #dc3545;
+            padding: 10px;
+            background-color: #f8d7da;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Temas List</h1>
+    <h1>Formula 1 Teams Query Tool</h1>
+    
+    {% if error %}
+    <div class="error">
+        <strong>Error:</strong> {{ error }}
+    </div>
+    {% endif %}
+    
+    <div class="query-form">
+        <form action="/teams/query" method="post">
+            <div class="form-group">
+                <label for="attribute">Select Attribute:</label>
+                <select id="attribute" name="attribute" required>
+                    <option value="">-- Select an attribute --</option>
+                    <option value="name">Team Name</option>
+                    <option value="year_founded">Year Founded</option>
+                    <option value="total_pole_positions">Total Pole Positions</option>
+                    <option value="total_race_wins">Total Race Wins</option>
+                    <option value="total_constructor_titles">Constructor Titles</option>
+                    <option value="previous_season_position">Previous Season Position</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="operator">Comparison:</label>
+                <select id="operator" name="operator" required>
+                    <option value="">-- Select comparison --</option>
+                    <option value="eq">Equal to (=)</option>
+                    <option value="gt">Greater than (>)</option>
+                    <option value="lt">Less than (<)</option>
+                    <option value="gte">Greater than or equal to (≥)</option>
+                    <option value="lte">Less than or equal to (≤)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="value">Value:</label>
+                <input type="text" id="value" name="value" required>
+            </div>
+            
+            <button type="submit">Run Query</button>
+            <button type="button" class="reset-btn" onclick="window.location.href='/teams'">Reset</button>
+        </form>
+    </div>
+    
+    {% if query_info %}
+    <div class="query-info">
+        <strong>Current Query:</strong> {{ query_info }}
+    </div>
+    {% endif %}
+    
     {% if teams %}
-        <ul>
+        <h2>Teams</h2>
+        <ul class="team-list">
             {% for team in teams %}
-                <li>{{ team.name }}</li>
+                <li class="team-item">
+                    <div class="team-name">{{ team.name }}</div>
+                    <div class="team-stats">
+                        Founded: {{ team.year_founded }} | 
+                        Race Wins: {{ team.total_race_wins }} | 
+                        Pole Positions: {{ team.total_pole_positions }} | 
+                        Constructor Titles: {{ team.total_constructor_titles }} | 
+                        Previous Season: {{ team.previous_season_position }}
+                    </div>
+                </li>
             {% endfor %}
         </ul>
     {% else %}
-        <p>No Teams found.</p>
+        <p>No teams found matching your criteria.</p>
     {% endif %}
+    
     <a href="/teams/create">Create New Team</a>
+    
+    <script>
+        // Script to handle UI interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            const attributeSelect = document.getElementById('attribute');
+            const valueInput = document.getElementById('value');
+            
+            attributeSelect.addEventListener('change', function() {
+                // Change input type based on selected attribute
+                if (['year_founded', 'total_pole_positions', 'total_race_wins', 
+                     'total_constructor_titles', 'previous_season_position'].includes(this.value)) {
+                    valueInput.type = 'number';
+                    valueInput.min = '0';
+                } else {
+                    valueInput.type = 'text';
+                    valueInput.removeAttribute('min');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

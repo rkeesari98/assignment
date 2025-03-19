@@ -19,3 +19,8 @@ class Team(BaseModel):
     total_race_wins: int
     total_constructor_titles: int
     previous_season_position: int
+
+class Query(BaseModel):
+    attribute: str
+    operator: str
+    value: str

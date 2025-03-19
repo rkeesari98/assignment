@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import FastAPI, Request,Form, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -5,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 import google.oauth2.id_token
 from google.auth.transport import requests
 from google.cloud import firestore
-from models import Driver, Team
+from models import Driver, Team,Query
 import starlette.status as status
 from fastapi.responses import RedirectResponse
 
@@ -213,10 +214,73 @@ def create_team(team: Team = Depends(team_form)):
         status_code=303
     )
 
-@app.get("/teams",response_class=HTMLResponse)
-def get_drivers(request:Request):
-    teams = [doc.to_dict() for doc in firestore_db.collection('teams').stream()]
+# @app.get("/teams",response_class=HTMLResponse)
+# def get_drivers(request:Request):
+#     teams = [doc.to_dict() for doc in firestore_db.collection('teams').stream()]
+#     return templates.TemplateResponse(
+#         "teams.html",
+#         {"request": request, "teams": teams}
+#     )
+
+
+def query_form(
+    attribute: str = Form(...),
+    operator: str = Form(...),
+    value: str = Form(...)
+):
+    return Query(attribute=attribute, operator=operator, value=value)
+
+@app.get("/teams", response_class=HTMLResponse)
+def get_teams(request: Request, 
+              attribute: Optional[str] = None, 
+              operator: Optional[str] = None, 
+              value: Optional[str] = None):
+    print("chikki")
+    query = firestore_db.collection('teams')
+    query_info = None
+    
+    # Apply filter if all parameters are provided
+    if attribute and operator and value:
+        # Convert value to proper type based on attribute
+        if attribute == "name":
+            typed_value = value  # Keep as string
+        else:
+            # Convert to int for numeric fields
+            try:
+                typed_value = int(value)
+            except ValueError:
+                teams = []
+                return templates.TemplateResponse(
+                    "teams.html",
+                    {"request": request, "teams": teams, "error": f"Invalid numeric value: {value}"}
+                )
+        
+        # Map operator to Firestore comparison
+        operator_map = {
+            "eq": "==",
+            "gt": ">",
+            "lt": "<",
+            "gte": ">=",
+            "lte": "<="
+        }
+        
+        if operator in operator_map:
+            query = query.where(attribute, operator_map[operator], typed_value)
+            query_info = f"{attribute} {operator_map[operator]} {value}"
+    
+    # Execute query
+    teams = [doc.to_dict() for doc in query.stream()]
+
+    
     return templates.TemplateResponse(
         "teams.html",
-        {"request": request, "teams": teams}
+        {"request": request, "teams": teams, "query_info": query_info}
+    )
+
+@app.post("/teams/query", response_class=RedirectResponse)
+def query_teams(query_params: Query = Depends(query_form)):
+    # Redirect to GET endpoint with query parameters
+    return RedirectResponse(
+        url=f"/teams?attribute={query_params.attribute}&operator={query_params.operator}&value={query_params.value}",
+        status_code=303
     )
