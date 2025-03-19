@@ -66,10 +66,11 @@ async def create_driver(request: Request,error: str = None):
             print("User Token:", user_token)  # Debugging output
         except ValueError as err:
             error_message = str(err)  # Display error message if token verification fails
-
+    query = firestore_db.collection("teams")
+    teams = [doc.to_dict() for doc in query.stream()]
     return templates.TemplateResponse(
         "add-driver.html",
-        {"request": request,"error":error}
+        {"request": request,"error":error,"teams":teams}
     )
 
 def driver_form(name: str = Form(...), age: int = Form(...),total_pole_positions:int = Form(...),
@@ -88,9 +89,9 @@ def create_driver(driver: Driver = Depends(driver_form)):
             url="/drivers/create?error=Driver%20name%20exists",
             status_code=303
         )
-    if driver.age < 0:
+    if driver.age < 16:
         return RedirectResponse(
-            url="/drivers/create?error=Age%20must%20be%20positive",
+            url="/drivers/create?error=Age%20must%20be%20greater%20than%20 16",
             status_code=303
         )
     if driver.total_pole_positions < 0:
@@ -132,13 +133,13 @@ def create_driver(driver: Driver = Depends(driver_form)):
         status_code=303
     )
 
-@app.get("/drivers",response_class=HTMLResponse)
-def get_drivers(request:Request):
-    drivers = [doc.to_dict() for doc in firestore_db.collection('drivers').stream()]
-    return templates.TemplateResponse(
-        "drivers.html",
-        {"request": request, "drivers": drivers}
-    )
+# @app.get("/drivers",response_class=HTMLResponse)
+# def get_drivers(request:Request):
+#     drivers = [doc.to_dict() for doc in firestore_db.collection('drivers').stream()]
+#     return templates.TemplateResponse(
+#         "drivers.html",
+#         {"request": request, "drivers": drivers}
+#     )
 
 
 
@@ -235,7 +236,6 @@ def get_teams(request: Request,
               attribute: Optional[str] = None, 
               operator: Optional[str] = None, 
               value: Optional[str] = None):
-    print("chikki")
     query = firestore_db.collection('teams')
     query_info = None
     
@@ -269,7 +269,7 @@ def get_teams(request: Request,
             query_info = f"{attribute} {operator_map[operator]} {value}"
     
     # Execute query
-    teams = [doc.to_dict() for doc in query.stream()]
+    teams = [{"id": doc.id, **doc.to_dict()} for doc in query.stream()]
 
     
     return templates.TemplateResponse(
@@ -284,3 +284,221 @@ def query_teams(query_params: Query = Depends(query_form)):
         url=f"/teams?attribute={query_params.attribute}&operator={query_params.operator}&value={query_params.value}",
         status_code=303
     )
+
+@app.get("/drivers",response_class=HTMLResponse)
+def get_drivers(request:Request,
+                attribute: Optional[str] = None, 
+              operator: Optional[str] = None, 
+              value: Optional[str] = None):
+    query = firestore_db.collection('drivers')
+    query_info = None
+    
+    # Apply filter if all parameters are provided
+    if attribute and operator and value:
+        # Convert value to proper type based on attribute
+        if attribute == "name" or attribute=="team":
+            typed_value = value  # Keep as string
+        else:
+            # Convert to int for numeric fields
+            try:
+                typed_value = int(value)
+            except ValueError:
+                drivers = []
+                return templates.TemplateResponse(
+                    "drivers.html",
+                    {"request": request, "drivers": drivers, "error": f"Invalid numeric value: {value}"}
+                )
+        
+        # Map operator to Firestore comparison
+        operator_map = {
+            "eq": "==",
+            "gt": ">",
+            "lt": "<",
+            "gte": ">=",
+            "lte": "<="
+        }
+        
+        if operator in operator_map:
+            query = query.where(attribute, operator_map[operator], typed_value)
+            query_info = f"{attribute} {operator_map[operator]} {value}"
+    
+    drivers = [{"id": doc.id, **doc.to_dict()} for doc in query.stream()]
+
+    # Execute query
+    
+    return templates.TemplateResponse(
+        "drivers.html",
+        {"request": request, "drivers": drivers, "query_info": query_info}
+    )
+
+@app.post("/drivers/query", response_class=RedirectResponse)
+def query_drivers(query_params: Query = Depends(query_form)):
+    # Redirect to GET endpoint with query parameters
+    return RedirectResponse(
+        url=f"/drivers?attribute={query_params.attribute}&operator={query_params.operator}&value={query_params.value}",
+        status_code=303
+    )
+
+@app.get("/drivers/{driver_id}", response_class=HTMLResponse)
+def get_driver_by_id(driver_id: str, request: Request):
+    doc_ref = firestore_db.collection("drivers").document(driver_id)
+    doc = doc_ref.get()
+
+    if not doc.exists:
+        return HTMLResponse(content="Driver not found", status_code=404)
+
+    driver = {"id": doc.id, **doc.to_dict()}
+    query = firestore_db.collection("teams")
+    teams = [doc.to_dict() for doc in query.stream()]
+    
+    return templates.TemplateResponse(
+        "add-driver.html",
+        {"request": request, "driver": driver,"teams":teams}
+    )
+
+
+@app.post("/drivers/{driver_id}", response_class=RedirectResponse)
+def update_driver(driver_id: str, driver: Driver = Depends(driver_form)):
+    print(driver)
+    driver_ref = firestore_db.collection("drivers").document(driver_id)
+    existing_driver = driver_ref.get()
+    
+    if not existing_driver.exists:
+        return RedirectResponse(
+            url="/drivers?error=Driver%20not%20found",
+            status_code=303
+        )
+    if driver.age < 16:
+        return RedirectResponse(
+            url="/drivers/{}/edit?error=Age%20must%20be%20greater%20than%2016".format(driver_id),
+            status_code=303
+        )
+    if driver.total_pole_positions < 0:
+        return RedirectResponse(
+            url="/drivers/{}/edit?error=total_pole_positions%20must%20be%20positive".format(driver_id),
+            status_code=303
+        )
+    if driver.total_race_wins < 0:
+        return RedirectResponse(
+            url="/drivers/{}/edit?error=total_race_wins%20must%20be%20positive".format(driver_id),
+            status_code=303
+        )
+    if driver.total_points_scored < 0:
+        return RedirectResponse(
+            url="/drivers/{}/edit?error=total_points_scored%20must%20be%20positive".format(driver_id),
+            status_code=303
+        )
+    if driver.total_world_titles < 0:
+        return RedirectResponse(
+            url="/drivers/{}/edit?error=total_world_titles%20must%20be%20positive".format(driver_id),
+            status_code=303
+        )
+    if driver.total_fastest_laps < 0:
+        return RedirectResponse(
+            url="/drivers/{}/edit?error=total_fastest_laps%20must%20be%20positive".format(driver_id),
+            status_code=303
+        )
+    
+    driver_ref.update(driver.dict())
+    
+    return RedirectResponse(
+        url="/drivers",
+        status_code=303
+    )
+
+@app.delete("/drivers/{driver_id}", response_class=HTMLResponse)
+def delete_driver(driver_id: str, request: Request):
+    doc_ref = firestore_db.collection("drivers").document(driver_id)
+    doc = doc_ref.get()
+
+    if not doc.exists:
+        return HTMLResponse(content="Driver not found", status_code=404)
+
+    # Proceed to delete the driver
+    doc_ref.delete()
+
+    # Redirect to the /drivers page after deleting
+    return RedirectResponse(url="/drivers", status_code=303)
+
+
+
+
+
+
+
+
+
+
+@app.get("/teams/{team_id}", response_class=HTMLResponse)
+def get_team_by_id(team_id: str, request: Request):
+    doc_ref = firestore_db.collection("teams").document(team_id)
+    doc = doc_ref.get()
+
+    if not doc.exists:
+        return HTMLResponse(content="Team not found", status_code=404)
+
+    team = {"id": doc.id, **doc.to_dict()}
+    
+    return templates.TemplateResponse(
+        "add-team.html",
+        {"request": request, "team": team}
+    )
+
+
+@app.post("/teams/{team_id}", response_class=RedirectResponse)
+def update_team(team_id: str, team: Team = Depends(team_form)):
+    print(team)
+    teams_ref = firestore_db.collection("teams").document(team_id)
+    existing_team = teams_ref.get()
+    
+    if not existing_team.exists:
+        return RedirectResponse(
+            url="/teams?error=Team%20not%20found",
+            status_code=303
+        )
+    if team.year_founded < 1900 or team.year_founded>2025:
+        return RedirectResponse(
+            url="/teams/create?error=team%20founded%20must%20be%20in%20between%20 1900%20to%20 2025",
+            status_code=303
+        )
+    if team.total_pole_positions < 0:
+        return RedirectResponse(
+            url="/teams/create?error=total_pole_positions%20must%20be%20positive",
+            status_code=303
+        )
+    if team.total_race_wins < 0:
+        return RedirectResponse(
+            url="/teams/create?error=total_race_wins%20must%20be%20positive",
+            status_code=303
+        )
+    if team.total_constructor_titles < 0:
+        return RedirectResponse(
+            url="/teams/create?error=total_constructor_titles%20must%20be%20positive",
+            status_code=303
+        )
+    if team.previous_season_position < 0:
+        return RedirectResponse(
+            url="/teams/create?error=previous_season_position%20must%20be%20positive",
+            status_code=303
+        )
+    
+    teams_ref.update(team.dict())
+    
+    return RedirectResponse(
+        url="/teams",
+        status_code=303
+    )
+
+@app.delete("/teams/{teams_id}", response_class=HTMLResponse)
+def delete_teams(teams_id: str, request: Request):
+    doc_ref = firestore_db.collection("teams").document(teams_id)
+    doc = doc_ref.get()
+
+    if not doc.exists:
+        return HTMLResponse(content="Team not found", status_code=404)
+
+    # Proceed to delete the driver
+    doc_ref.delete()
+
+    # Redirect to the /drivers page after deleting
+    return RedirectResponse(url="/teams", status_code=303)

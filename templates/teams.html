@@ -9,27 +9,33 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #e10600;
+            text-align: center;
         }
         .query-form {
             margin-bottom: 20px;
             padding: 20px;
-            background-color: #f8f9fa;
+            background-color: white;
             border-radius: 5px;
             border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .form-group {
             margin-bottom: 15px;
         }
         label {
             display: inline-block;
-            width: 150px;
+            width: 180px;
             font-weight: bold;
         }
         select, input {
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            min-width: 200px;
+            min-width: 250px;
         }
         button {
             padding: 10px 20px;
@@ -59,15 +65,38 @@
             margin-bottom: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            background-color: #f9f9f9;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .team-name {
             font-weight: bold;
             font-size: 18px;
         }
+        .team-name a {
+            text-decoration: none;
+            color: #e10600;
+        }
+        .team-name a:hover {
+            text-decoration: underline;
+        }
         .team-stats {
             margin-top: 5px;
             color: #555;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+            font-size: 14px;
+        }
+        .delete-btn:hover {
+            background-color: #b02a37;
         }
         .query-info {
             margin: 15px 0;
@@ -82,6 +111,59 @@
             background-color: #f8d7da;
             border-radius: 4px;
             margin-bottom: 15px;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 5px;
+            max-width: 400px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        
+        .modal-title {
+            margin-top: 0;
+            color: #e10600;
+        }
+        
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .btn-confirm {
+            background-color: #dc3545;
+            margin-left: 10px;
+        }
+        
+        .btn-confirm:hover {
+            background-color: #b02a37;
+        }
+        
+        .btn-cancel {
+            background-color: #6c757d;
+        }
+        
+        .btn-cancel:hover {
+            background-color: #5a6268;
         }
     </style>
 </head>
@@ -104,7 +186,7 @@
                     <option value="year_founded">Year Founded</option>
                     <option value="total_pole_positions">Total Pole Positions</option>
                     <option value="total_race_wins">Total Race Wins</option>
-                    <option value="total_constructor_titles">Constructor Titles</option>
+                    <option value="total_constructor_titles">Total Constructor Titles</option>
                     <option value="previous_season_position">Previous Season Position</option>
                 </select>
             </div>
@@ -141,42 +223,129 @@
         <h2>Teams</h2>
         <ul class="team-list">
             {% for team in teams %}
-                <li class="team-item">
-                    <div class="team-name">{{ team.name }}</div>
-                    <div class="team-stats">
-                        Founded: {{ team.year_founded }} | 
-                        Race Wins: {{ team.total_race_wins }} | 
-                        Pole Positions: {{ team.total_pole_positions }} | 
-                        Constructor Titles: {{ team.total_constructor_titles }} | 
-                        Previous Season: {{ team.previous_season_position }}
+                <li class="team-item" data-id="{{ team.id }}">
+                    <div>
+                        <div class="team-name">
+                            <a href="/teams/{{ team.id }}">{{ team.name }}</a>
+                        </div>
+                        <div class="team-stats">
+                            Year Founded: {{ team.year_founded }} | 
+                            Total Pole Positions: {{ team.total_pole_positions }} | 
+                            Total Race Wins: {{ team.total_race_wins }} | 
+                            Total Constructor Titles: {{ team.total_constructor_titles }} |
+                            Previous Season Position {{ team.previous_season_position }} 
+                        </div>
                     </div>
+                    <button class="delete-btn" data-id="{{ team.id }}" data-name="{{ team.name }}">Delete</button>
                 </li>
             {% endfor %}
         </ul>
     {% else %}
-        <p>No teams found matching your criteria.</p>
+        <p>No drivers found matching your criteria.</p>
     {% endif %}
     
-    <a href="/teams/create">Create New Team</a>
-    
+    <a href="/teams/create" style="display: block; text-align: center; margin-top: 20px; font-size: 16px; text-decoration: none; color: #e10600;">
+        ➕ Create New Team
+    </a>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Confirm Deletion</h3>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <span id="driverName"></span>?</p>
+                <p>This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelDelete" class="btn-cancel">Cancel</button>
+                <button id="confirmDelete" class="btn-confirm">Delete</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Script to handle UI interactions
+        // Store the driver ID to be deleted
+        let driverToDelete = null;
+        const modal = document.getElementById('deleteModal');
+        const driverNameSpan = document.getElementById('driverName');
+        
+        // Add event listeners to all delete buttons
         document.addEventListener('DOMContentLoaded', function() {
-            const attributeSelect = document.getElementById('attribute');
-            const valueInput = document.getElementById('value');
+            // Get all delete buttons
+            const deleteButtons = document.querySelectorAll('.delete-btn');
             
-            attributeSelect.addEventListener('change', function() {
-                // Change input type based on selected attribute
-                if (['year_founded', 'total_pole_positions', 'total_race_wins', 
-                     'total_constructor_titles', 'previous_season_position'].includes(this.value)) {
-                    valueInput.type = 'number';
-                    valueInput.min = '0';
-                } else {
-                    valueInput.type = 'text';
-                    valueInput.removeAttribute('min');
+            // Add click event listener to each button
+            deleteButtons.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    // Get the driver ID and name from data attributes
+                    driverToDelete = this.getAttribute('data-id');
+                    const driverName = this.getAttribute('data-name');
+                    
+                    // Set driver name in modal
+                    driverNameSpan.textContent = driverName;
+                    
+                    // Show the modal
+                    modal.style.display = 'block';
+                });
+            });
+            
+            // Set up modal cancel button
+            document.getElementById('cancelDelete').addEventListener('click', function() {
+                modal.style.display = 'none';
+                driverToDelete = null;
+            });
+            
+            // Set up modal confirm button
+            document.getElementById('confirmDelete').addEventListener('click', function() {
+                if (driverToDelete) {
+                    deleteDriver(driverToDelete);
+                    modal.style.display = 'none';
+                }
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                    driverToDelete = null;
                 }
             });
         });
+
+        function deleteDriver(driverId) {
+            console.log("Deleting driver with ID:", driverId);
+            
+            // Direct fetch DELETE request
+            fetch(`/teams/${driverId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                    // Add any necessary headers like CSRF tokens here if needed
+                    // 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
+            .then(response => {
+                console.log("Delete response status:", response.status);
+                if (response.ok) {
+                    // Find the element using data attribute selector and remove it
+                    const driverElement = document.querySelector(`li[data-id="${driverId}"]`);
+                    if (driverElement) {
+                        driverElement.remove();
+                        console.log("Team removed from display");
+                    } else {
+                        console.log("Team element not found in DOM, reloading page");
+                        window.location.reload();
+                    }
+                } else {
+                    console.error("Server returned error status:", response.status);
+                    alert("Failed to delete driver");
+                }
+            })
+            .catch(error => {
+                console.error("Error occurred during delete:", error);
+                alert("An error occurred while deleting the Team");
+            });
+        }
     </script>
 </body>
 </html>
