@@ -96,8 +96,7 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="/drivers">View All Drivers</a></li>
-                            <li><a class="dropdown-item" href="/add_driver">Add Driver</a></li>
-                            <li><a class="dropdown-item" href="/query_drivers">Query Drivers</a></li>
+                            <li><a class="dropdown-item" href="/drivers/create">Add Driver</a></li>
                             <li><a class="dropdown-item" href="/compare_drivers">Compare Drivers</a></li>
                         </ul>
                     </li>
@@ -107,8 +106,7 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="/teams">View All Teams</a></li>
-                            <li><a class="dropdown-item" href="/add_team">Add Team</a></li>
-                            <li><a class="dropdown-item" href="/query_teams">Query Teams</a></li>
+                            <li><a class="dropdown-item" href="/teams/create">Add Team</a></li>
                             <li><a class="dropdown-item" href="/compare_teams">Compare Teams</a></li>
                         </ul>
                     </li>
@@ -155,10 +153,10 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <p>&copy; 2025 F1 Database</p>
+                    <p>&copy Assignment-1</p>
                 </div>
                 <div class="col-md-6 text-end">
-                    <p>Cloud Platforms & Applications</p>
+                    <p></p>
                 </div>
             </div>
         </div>
@@ -211,7 +209,7 @@
                     button.classList.remove('disabled');
                 });
                 
-                // Enable add forms if they exist
+                // Enable all add forms if they exist
                 const addForms = document.querySelectorAll('.add-form');
                 addForms.forEach(form => {
                     form.classList.remove('disabled');
@@ -238,14 +236,32 @@
                     button.classList.add('disabled');
                 });
                 
-                // Disable add forms
+                // Disable add forms EXCEPT for driver creation form
                 const addForms = document.querySelectorAll('.add-form');
                 addForms.forEach(form => {
-                    form.classList.add('disabled');
-                    const inputs = form.querySelectorAll('input, select, button');
-                    inputs.forEach(input => {
-                        input.disabled = true;
-                    });
+                    // Check if this is the driver creation form
+                    if (form.closest('form')?.action?.includes('/drivers/create')) {
+                        // Keep driver creation form enabled
+                        form.classList.remove('disabled');
+                        const inputs = form.querySelectorAll('input, select, button');
+                        inputs.forEach(input => {
+                            input.disabled = false;
+                        });
+                    }
+                    else if(form.closest('form')?.action?.includes('/teams/create')){
+                        form.classList.remove('disabled');
+                        const inputs = form.querySelectorAll('input, select, button');
+                        inputs.forEach(input => {
+                            input.disabled = false;
+                        });
+                    } else {
+                        // Disable other forms
+                        form.classList.add('disabled');
+                        const inputs = form.querySelectorAll('input, select, button');
+                        inputs.forEach(input => {
+                            input.disabled = true;
+                        });
+                    }
                 });
             }
         }
