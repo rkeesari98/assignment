@@ -5,14 +5,13 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, si
 // Load environment variables from the .env file
 // Note: For client-side code, you'll need to process this during build time
 const firebaseConfig = {
-    apiKey: process.env.FIREBASE_API_KEY,
-    authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.FIREBASE_APP_ID
+    apiKey: "AIzaSyBMoMIJMqCIJZDgxEDpUShZCS2o1Ew_nxs",
+    authDomain: "assignment---1-1e153.firebaseapp.com",
+    projectId: "assignment---1-1e153",
+    storageBucket: "assignment---1-1e153.appspot.com",
+    messagingSenderId: "133737118405",
+    appId: "1:133737118405:web:244db60467492f4f10ceac"
 };
-
 window.addEventListener("load", function() {
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
