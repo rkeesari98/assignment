@@ -116,8 +116,10 @@ def driver_form(name: str = Form(...), age: int = Form(...),total_pole_positions
 
 #post request to create a driver
 @app.post("/drivers/create", response_class=RedirectResponse)
-def create_driver(driver: Driver = Depends(driver_form)):
+def create_driver(request:Request,driver: Driver = Depends(driver_form)):
     try:
+        if not is_logged_in(request):
+            return RedirectResponse(url="/", status_code=303)
         DriverService.create_driver(driver)
         return RedirectResponse(
             url="/drivers",
@@ -282,8 +284,10 @@ def team_form(name: str = Form(...), year_founded: int = Form(...),total_pole_po
 
 #post request for creating team
 @app.post("/teams/create", response_class=RedirectResponse)
-def create_team(team: Team = Depends(team_form)):
+def create_team(request:Request,team: Team = Depends(team_form)):
     try:
+        if not is_logged_in(request):
+            return RedirectResponse(url="/", status_code=303)
         TeamService.create_team(team)
         return RedirectResponse(
             url="/teams/",

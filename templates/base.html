@@ -240,7 +240,7 @@
                 const addForms = document.querySelectorAll('.add-form');
                 addForms.forEach(form => {
                     // Check if this is the driver creation form
-                    if (form.closest('form')?.action?.includes('/drivers/create')) {
+                    if (form.closest('form')?.action?.includes()) {
                         // Keep driver creation form enabled
                         form.classList.remove('disabled');
                         const inputs = form.querySelectorAll('input, select, button');
@@ -248,7 +248,7 @@
                             input.disabled = false;
                         });
                     }
-                    else if(form.closest('form')?.action?.includes('/teams/create')){
+                    else if(form.closest('form')?.action?.includes()){
                         form.classList.remove('disabled');
                         const inputs = form.querySelectorAll('input, select, button');
                         inputs.forEach(input => {
