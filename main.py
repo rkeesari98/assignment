@@ -258,19 +258,19 @@ def get_teams(request: Request,
 # get route for creating the team
 @app.get("/teams/create", response_class=HTMLResponse)
 async def create_team(request: Request,error: str = None):
-    id_token = request.cookies.get("token")
-    user_token = None
-    if id_token:
-        try:
-            user_token = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
-            print("User Token:", user_token)  
-        except ValueError as err:
-            error_message = str(err)  
-
-    return templates.TemplateResponse(
-        "add-team.html",
-        {"request": request,"error":error_message}
-    )
+    
+    try:
+        return templates.TemplateResponse(
+            "add-team.html",
+            {"request": request}
+        )
+        print("User Token:", user_token)  
+    except ValueError as err:
+        error_message = str(err)  
+        return templates.TemplateResponse(
+            "add-team.html",
+            {"request": request,"error":error_message}
+        )
 
 #helper function for creating pydantic model 
 def team_form(name: str = Form(...), year_founded: int = Form(...),total_pole_positions:int = Form(...),

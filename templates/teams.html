@@ -1,353 +1,189 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>F1 Teams Query Tool</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        h1 {
-            color: #e10600;
-            text-align: center;
-        }
-        .query-form {
-            margin-bottom: 20px;
-            padding: 20px;
-            background-color: white;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: inline-block;
-            width: 180px;
-            font-weight: bold;
-        }
-        select, input {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            min-width: 250px;
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #e10600;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        button:hover {
-            background-color: #c00500;
-        }
-        .reset-btn {
-            background-color: #6c757d;
-            margin-left: 10px;
-        }
-        .reset-btn:hover {
-            background-color: #5a6268;
-        }
-        .team-list {
-            list-style-type: none;
-            padding: 0;
-        }
-        .team-item {
-            padding: 15px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .team-name {
-            font-weight: bold;
-            font-size: 18px;
-        }
-        .team-name a {
-            text-decoration: none;
-            color: #e10600;
-        }
-        .team-name a:hover {
-            text-decoration: underline;
-        }
-        .team-stats {
-            margin-top: 5px;
-            color: #555;
-        }
-        .delete-btn {
-            background-color: #dc3545;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            color: white;
-            font-size: 14px;
-        }
-        .delete-btn:hover {
-            background-color: #b02a37;
-        }
-        .query-info {
-            margin: 15px 0;
-            padding: 10px;
-            background-color: #e9ecef;
-            border-radius: 4px;
-            font-style: italic;
-        }
-        .error {
-            color: #dc3545;
-            padding: 10px;
-            background-color: #f8d7da;
-            border-radius: 4px;
-            margin-bottom: 15px;
-        }
-        
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
-        
-        .modal-content {
-            background-color: white;
-            margin: 15% auto;
-            padding: 20px;
-            border-radius: 5px;
-            max-width: 400px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            position: relative;
-        }
-        
-        .modal-title {
-            margin-top: 0;
-            color: #e10600;
-        }
-        
-        .modal-body {
-            margin-bottom: 20px;
-        }
-        
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-        }
-        
-        .btn-confirm {
-            background-color: #dc3545;
-            margin-left: 10px;
-        }
-        
-        .btn-confirm:hover {
-            background-color: #b02a37;
-        }
-        
-        .btn-cancel {
-            background-color: #6c757d;
-        }
-        
-        .btn-cancel:hover {
-            background-color: #5a6268;
-        }
-    </style>
-</head>
-<body>
-    <h1>Formula 1 Teams Query Tool</h1>
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-f1 text-center mb-4">Formula 1 Teams Query Tool</h1>
     
     {% if error %}
-    <div class="error">
+    <div class="alert alert-danger">
         <strong>Error:</strong> {{ error }}
     </div>
     {% endif %}
     
-    <div class="query-form">
-        <form action="/teams/query" method="post">
-            <div class="form-group">
-                <label for="attribute">Select Attribute:</label>
-                <select id="attribute" name="attribute" required>
-                    <option value="">-- Select an attribute --</option>
-                    <option value="name">Team Name</option>
-                    <option value="year_founded">Year Founded</option>
-                    <option value="total_pole_positions">Total Pole Positions</option>
-                    <option value="total_race_wins">Total Race Wins</option>
-                    <option value="total_constructor_titles">Total Constructor Titles</option>
-                    <option value="previous_season_position">Previous Season Position</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="operator">Comparison:</label>
-                <select id="operator" name="operator" required>
-                    <option value="">-- Select comparison --</option>
-                    <option value="eq">Equal to (=)</option>
-                    <option value="gt">Greater than (>)</option>
-                    <option value="lt">Less than (<)</option>
-                    <option value="gte">Greater than or equal to (≥)</option>
-                    <option value="lte">Less than or equal to (≤)</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="value">Value:</label>
-                <input type="text" id="value" name="value" required>
-            </div>
-            
-            <button type="submit">Run Query</button>
-            <button type="button" class="reset-btn" onclick="window.location.href='/teams'">Reset</button>
-        </form>
+    <div class="card mb-4">
+        <div class="card-body">
+            <form action="/teams/query" method="post">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="attribute" class="form-label">Select Attribute:</label>
+                        <select id="attribute" name="attribute" class="form-select" required>
+                            <option value="">-- Select an attribute --</option>
+                            <option value="name">Team Name</option>
+                            <option value="year_founded">Year Founded</option>
+                            <option value="total_pole_positions">Total Pole Positions</option>
+                            <option value="total_race_wins">Total Race Wins</option>
+                            <option value="total_constructor_titles">Total Constructor Titles</option>
+                            <option value="previous_season_position">Previous Season Position</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="operator" class="form-label">Comparison:</label>
+                        <select id="operator" name="operator" class="form-select" required>
+                            <option value="">-- Select comparison --</option>
+                            <option value="eq">Equal to (=)</option>
+                            <option value="gt">Greater than (>)</option>
+                            <option value="lt">Less than (<)</option>
+                            <option value="gte">Greater than or equal to (≥)</option>
+                            <option value="lte">Less than or equal to (≤)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="value" class="form-label">Value:</label>
+                        <input type="text" id="value" name="value" class="form-control" required>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-center">
+                    <button type="submit" class="btn btn-primary bg-f1 me-2">Run Query</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='/teams'">Reset</button>
+                </div>
+            </form>
+        </div>
     </div>
     
     {% if query_info %}
-    <div class="query-info">
+    <div class="alert alert-info">
         <strong>Current Query:</strong> {{ query_info }}
     </div>
     {% endif %}
     
     {% if teams %}
-        <h2>Teams</h2>
-        <ul class="team-list">
+        <h2 class="mb-3">Teams</h2>
+        <div class="list-group">
             {% for team in teams %}
-                <li class="team-item" data-id="{{ team.id }}">
+                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-id="{{ team.id }}">
                     <div>
-                        <div class="team-name">
-                            <a href="/teams/{{ team.id }}">{{ team.name }}</a>
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">
+                                <a href="/teams/{{ team.id }}" class="text-f1">{{ team.name }}</a>
+                            </h5>
                         </div>
-                        <div class="team-stats">
+                        <p class="mb-1">
                             Year Founded: {{ team.year_founded }} | 
                             Total Pole Positions: {{ team.total_pole_positions }} | 
                             Total Race Wins: {{ team.total_race_wins }} | 
                             Total Constructor Titles: {{ team.total_constructor_titles }} |
-                            Previous Season Position {{ team.previous_season_position }} 
-                        </div>
+                            Previous Season Position: {{ team.previous_season_position }}
+                        </p>
                     </div>
                     {% if user_logged_in %}
-                        <button class="delete-btn" data-id="{{ team.id }}" data-name="{{ team.name }}">Delete</button>
+                        <button class="btn btn-danger delete-button" data-id="{{ team.id }}" data-name="{{ team.name }}">Delete</button>
                     {% endif %}
-                </li>
+                </div>
             {% endfor %}
-        </ul>
+        </div>
     {% else %}
-        <p>No drivers found matching your criteria.</p>
+        <p class="text-center">No teams found matching your criteria.</p>
     {% endif %}
     
-    <a href="/teams/create" style="display: block; text-align: center; margin-top: 20px; font-size: 16px; text-decoration: none; color: #e10600;">
-        ➕ Create New Team
-    </a>
+    <div class="text-center mt-4">
+        <a href="/teams/create" class="btn btn-outline-primary">
+            <i class="bi bi-plus-circle"></i> Create New Team
+        </a>
+    </div>
+</div>
 
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="modal">
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
         <div class="modal-content">
-            <h3 class="modal-title">Confirm Deletion</h3>
+            <div class="modal-header">
+                <h5 class="modal-title text-f1">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
             <div class="modal-body">
-                <p>Are you sure you want to delete <span id="driverName"></span>?</p>
+                <p>Are you sure you want to delete <span id="teamName"></span>?</p>
                 <p>This action cannot be undone.</p>
             </div>
             <div class="modal-footer">
-                <button id="cancelDelete" class="btn-cancel">Cancel</button>
-                <button id="confirmDelete" class="btn-confirm">Delete</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        // Store the driver ID to be deleted
-        let driverToDelete = null;
-        const modal = document.getElementById('deleteModal');
-        const driverNameSpan = document.getElementById('driverName');
+<script>
+    // Store the team ID to be deleted
+    let teamToDelete = null;
+    let deleteModal;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Bootstrap modal
+        deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
         
-        // Add event listeners to all delete buttons
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get all delete buttons
-            const deleteButtons = document.querySelectorAll('.delete-btn');
-            
-            // Add click event listener to each button
-            deleteButtons.forEach(function(button) {
-                button.addEventListener('click', function() {
-                    // Get the driver ID and name from data attributes
-                    driverToDelete = this.getAttribute('data-id');
-                    const driverName = this.getAttribute('data-name');
-                    
-                    // Set driver name in modal
-                    driverNameSpan.textContent = driverName;
-                    
-                    // Show the modal
-                    modal.style.display = 'block';
-                });
-            });
-            
-            // Set up modal cancel button
-            document.getElementById('cancelDelete').addEventListener('click', function() {
-                modal.style.display = 'none';
-                driverToDelete = null;
-            });
-            
-            // Set up modal confirm button
-            document.getElementById('confirmDelete').addEventListener('click', function() {
-                if (driverToDelete) {
-                    deleteDriver(driverToDelete);
-                    modal.style.display = 'none';
-                }
-            });
-            
-            // Close modal when clicking outside
-            window.addEventListener('click', function(event) {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                    driverToDelete = null;
-                }
+        // Get all delete buttons
+        const deleteButtons = document.querySelectorAll('.delete-button');
+        
+        // Add click event listener to each button
+        deleteButtons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                // Get the team ID and name from data attributes
+                teamToDelete = this.getAttribute('data-id');
+                const teamName = this.getAttribute('data-name');
+                
+                // Set team name in modal
+                document.getElementById('teamName').textContent = teamName;
+                
+                // Show the modal
+                deleteModal.show();
             });
         });
+        
+        // Set up modal confirm button
+        document.getElementById('confirmDelete').addEventListener('click', function() {
+            if (teamToDelete) {
+                deleteTeam(teamToDelete);
+                deleteModal.hide();
+            }
+        });
+    });
 
-        function deleteDriver(driverId) {
-            console.log("Deleting driver with ID:", driverId);
-            
-            // Direct fetch DELETE request
-            fetch(`/teams/${driverId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                    // Add any necessary headers like CSRF tokens here if needed
-                    // 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
-            })
-            .then(response => {
-                console.log("Delete response status:", response.status);
-                if (response.ok) {
-                    // Find the element using data attribute selector and remove it
-                    const driverElement = document.querySelector(`li[data-id="${driverId}"]`);
-                    if (driverElement) {
-                        driverElement.remove();
-                        console.log("Team removed from display");
-                    } else {
-                        console.log("Team element not found in DOM, reloading page");
-                        window.location.reload();
-                    }
+    function deleteTeam(teamId) {
+        console.log("Deleting team with ID:", teamId);
+        
+        // Direct fetch DELETE request
+        fetch(`/teams/${teamId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+                // Add any necessary headers like CSRF tokens here if needed
+                // 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => {
+            console.log("Delete response status:", response.status);
+            if (response.ok) {
+                // Find the element using data attribute selector and remove it
+                const teamElement = document.querySelector(`div[data-id="${teamId}"]`);
+                if (teamElement) {
+                    teamElement.remove();
+                    console.log("Team removed from display");
                 } else {
-                    console.error("Server returned error status:", response.status);
-                    alert("Failed to delete driver");
+                    console.log("Team element not found in DOM, reloading page");
+                    window.location.reload();
                 }
-            })
-            .catch(error => {
-                console.error("Error occurred during delete:", error);
-                alert("An error occurred while deleting the Team");
-            });
-        }
-    </script>
-</body>
-</html>
+            } else {
+                console.error("Server returned error status:", response.status);
+                alert("Failed to delete team");
+            }
+        })
+        .catch(error => {
+            console.error("Error occurred during delete:", error);
+            alert("An error occurred while deleting the team");
+        });
+    }
+</script>
+{% endblock %}

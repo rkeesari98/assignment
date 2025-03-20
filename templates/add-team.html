@@ -1,129 +1,61 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{% if team %}Update Team{% else %}Create New F1 Team{% endif %}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        h1 {
-            color: #e10600;
-        }
-        .form-container {
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            padding: 20px;
-            border: 1px solid #ddd;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input, select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        .button-group {
-            margin-top: 20px;
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #e10600;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #c00500;
-        }
-        .cancel-btn {
-            background-color: #6c757d;
-            margin-left: 10px;
-        }
-        .cancel-btn:hover {
-            background-color: #5a6268;
-        }
-        .error {
-            color: #dc3545;
-            padding: 10px;
-            background-color: #f8d7da;
-            border-radius: 4px;
-            margin-bottom: 15px;
-        }
-        .helper-text {
-            font-size: 0.85em;
-            color: #6c757d;
-            margin-top: 3px;
-        }
-    </style>
-</head>
-<body>
-    <h1>{% if team %}Update Team{% else %}Create New Team{% endif %}</h1>
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-f1">{% if team %}Update Team{% else %}Create New Team{% endif %}</h1>
     
     {% if error %}
-    <div class="error">
+    <div class="alert alert-danger">
         <strong>Error:</strong> {{ error }}
     </div>
     {% endif %}
     
-    <div class="form-container">
-        <form action="{% if team %}/teams/{{ team.id }}{% else %}/teams/create{% endif %}" method="post">
-            <div class="form-group">
-                <label for="name">Team Name:</label>
-                <input type="text" id="name" name="name" value="{{ team.name if team else '' }}" 
-                       {% if team %}readonly{% endif %} required>
-                <div class="helper-text">Full name of the Team{% if team %} (Cannot be changed after creation){% endif %}</div>
-            </div>
-            
-            
-            <div class="form-group">
-                <label for="total_pole_positions">Total Pole Positions:</label>
-                <input type="number" id="total_pole_positions" name="total_pole_positions" min="0" required 
-                       value="{{ team.total_pole_positions if team else '' }}">
-            </div>
-            
-            <div class="form-group">
-                <label for="total_race_wins">Total Race Wins:</label>
-                <input type="number" id="total_race_wins" name="total_race_wins" min="0" required 
-                       value="{{ team.total_race_wins if team else '' }}">
-            </div>
+    <div class="card">
+        <div class="card-body">
+            <form action="{% if team %}/teams/{{ team.id }}{% else %}/teams/create{% endif %}" method="post" class="add-form">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Team Name:</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ team.name if team else '' }}" 
+                           {% if team %}readonly{% endif %} required>
+                    <div class="form-text">Full name of the Team{% if team %} (Cannot be changed after creation){% endif %}</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="total_pole_positions" class="form-label">Total Pole Positions:</label>
+                    <input type="number" class="form-control" id="total_pole_positions" name="total_pole_positions" min="0" required 
+                           value="{{ team.total_pole_positions if team else '' }}">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="total_race_wins" class="form-label">Total Race Wins:</label>
+                    <input type="number" class="form-control" id="total_race_wins" name="total_race_wins" min="0" required 
+                           value="{{ team.total_race_wins if team else '' }}">
+                </div>
 
-            <div class="form-group">
-                <label for="year_founded">Year Founded:</label>
-                <input type="number" id="year_founded" name="year_founded" min="1900" required 
-                       value="{{ team.year_founded if team else '' }}">
-            </div>
-            
-            
-            <div class="form-group">
-                <label for="total_constructor_titles">Total Constructor Titles:</label>
-                <input type="number" id="total_constructor_titles" name="total_constructor_titles" min="0" required 
-                       value="{{ team.total_constructor_titles if team else '' }}">
-            </div>
-            
-            <div class="form-group">
-                <label for="previous_season_position">Total Fastest Laps:</label>
-                <input type="number" id="previous_season_position" name="previous_season_position" min="0" required 
-                       value="{{ team.previous_season_position if team else '' }}">
-            </div>
-            
-            <div class="button-group">
-                <button type="submit">{% if team %}Update Team{% else %}Create Team{% endif %}</button>
-                <button type="button" class="cancel-btn" onclick="window.location.href='/teams'">Cancel</button>
-            </div>
-        </form>
+                <div class="mb-3">
+                    <label for="year_founded" class="form-label">Year Founded:</label>
+                    <input type="number" class="form-control" id="year_founded" name="year_founded" min="1900" required 
+                           value="{{ team.year_founded if team else '' }}">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="total_constructor_titles" class="form-label">Total Constructor Titles:</label>
+                    <input type="number" class="form-control" id="total_constructor_titles" name="total_constructor_titles" min="0" required 
+                           value="{{ team.total_constructor_titles if team else '' }}">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="previous_season_position" class="form-label">Total Fastest Laps:</label>
+                    <input type="number" class="form-control" id="previous_season_position" name="previous_season_position" min="0" required 
+                           value="{{ team.previous_season_position if team else '' }}">
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger">{% if team %}Update Team{% else %}Create Team{% endif %}</button>
+                    <a href="/teams" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}
