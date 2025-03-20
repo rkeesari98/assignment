@@ -35,5 +35,39 @@
             <button type="submit" class="btn btn-primary">Compare</button>
         </div>
     </form>
+
+    <!-- JavaScript to prevent same team selection -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get references to the dropdowns
+            var team1 = document.getElementById('team1');
+            var team2 = document.getElementById('team2');
+
+            // Function to update options in the other dropdown
+            function updateOtherDropdown(thisDropdown, otherDropdown) {
+                var selectedValue = thisDropdown.value;
+                // Loop through all options in the other dropdown
+                for (var i = 0; i < otherDropdown.options.length; i++) {
+                    var option = otherDropdown.options[i];
+                    // Disable the option if it matches the selected value and the value is not "",
+                    // otherwise enable it
+                    if (selectedValue !== "" && option.value === selectedValue) {
+                        option.disabled = true;
+                    } else {
+                        option.disabled = false;
+                    }
+                }
+            }
+
+            // Add event listeners to both dropdowns
+            team1.addEventListener('change', function() {
+                updateOtherDropdown(team1, team2);
+            });
+
+            team2.addEventListener('change', function() {
+                updateOtherDropdown(team2, team1);
+            });
+        });
+    </script>
 </div>
 {% endblock %}

@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container mt-4">
     <h1>Compare Drivers</h1>
-    <form method="post">
+    <form method="post" id="compare-drivers-form">
         <div class="row">
             <div class="col-md-5">
                 <div class="form-group">
@@ -36,6 +36,42 @@
             <button type="submit" class="btn btn-primary">Compare</button>
         </div>
     </form>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var driver1 = document.getElementById('driver1');
+        var driver2 = document.getElementById('driver2');
+        var form = document.getElementById('compare-drivers-form');
+
+        function updateOtherDropdown(thisDropdown, otherDropdown) {
+            var selectedValue = thisDropdown.value;
+            for (var i = 0; i < otherDropdown.options.length; i++) {
+                var option = otherDropdown.options[i];
+                if (selectedValue !== "" && option.value === selectedValue) {
+                    option.disabled = true;
+                } else {
+                    option.disabled = false;
+                }
+            }
+            if (otherDropdown.value === selectedValue && selectedValue !== "") {
+                otherDropdown.value = "";
+            }
+        }
+
+        driver1.addEventListener('change', function() {
+            updateOtherDropdown(driver1, driver2);
+        });
+
+        driver2.addEventListener('change', function() {
+            updateOtherDropdown(driver2, driver1);
+        });
+
+        form.addEventListener('submit', function(event) {
+            if (driver1.value === driver2.value && driver1.value !== "") {
+                event.preventDefault();
+                alert("Please select two different drivers.");
+            }
+        });
+    });
+    </script>
 </div>
 {% endblock %}
-

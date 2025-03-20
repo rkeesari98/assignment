@@ -131,7 +131,9 @@ class DriverService:
         
         driver2_data = driver2_doc.to_dict()
         driver2_data['id'] = driver2_doc.id
-        
+
+        if driver1_data['id'] == driver2_data['id']:
+            raise Exception("comparison cannot be done between two same entities")
 
         # Determine which stats are better
         comparison = {}

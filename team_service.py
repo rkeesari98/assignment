@@ -133,7 +133,9 @@ class TeamService:
         
         team2_data = team2_doc.to_dict()
         team2_data['id'] = team2_doc.id
-        
+
+        if team1_data['id'] == team2_data['id']:
+            raise Exception("comparison cannot be done between two same entities") 
         
         comparison = {}
         
