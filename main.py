@@ -10,6 +10,7 @@ from models import Driver, Team,Query
 import starlette.status as status
 from fastapi.responses import RedirectResponse
 from driver_service import DriverService
+from team_service import TeamService
 
 app = FastAPI()
 
@@ -53,202 +54,9 @@ def get_user(user_token):
             'age':273
         }
     firestore_db.collection('users').document(user_token['user_id']).set(user_data)
-    
-
-@app.get("/drivers/create", response_class=HTMLResponse)
-async def create_driver(request: Request,error: str = None):
-    id_token = request.cookies.get("token")
-    error_message = "No error here"
-    user_token = None
-
-    if id_token:
-        try:
-            user_token = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
-            print("User Token:", user_token)  # Debugging output
-        except ValueError as err:
-            error_message = str(err)  # Display error message if token verification fails
-    query = firestore_db.collection("teams")
-    teams = [doc.to_dict() for doc in query.stream()]
-    return templates.TemplateResponse(
-        "add-driver.html",
-        {"request": request,"error":error,"teams":teams}
-    )
-
-def driver_form(name: str = Form(...), age: int = Form(...),total_pole_positions:int = Form(...),
-                total_race_wins: int = Form(...),total_points_scored:int = Form(...),
-                total_world_titles:int = Form(...),total_fastest_laps:int = Form(...),
-                team:str = Form(...)):
-    return Driver(name=name, age=age,total_pole_positions=total_pole_positions,total_race_wins=total_race_wins,total_points_scored=total_points_scored,
-                  total_world_titles=total_world_titles,total_fastest_laps=total_fastest_laps,team=team,)
-
-@app.post("/drivers/create", response_class=RedirectResponse)
-def create_driver(driver: Driver = Depends(driver_form)):
-    try:
-        DriverService.create_driver(driver)
-        return RedirectResponse(
-            url="/drivers",
-            status_code=303
-        )
-    except Exception as e:
-        # Correctly format the error message in the URL
-        return RedirectResponse(
-            url=f"/drivers/create?error={str(e)}",  # Convert the error to a string
-            status_code=303
-        )
-
-
-# @app.get("/drivers",response_class=HTMLResponse)
-# def get_drivers(request:Request):
-#     drivers = [doc.to_dict() for doc in firestore_db.collection('drivers').stream()]
-#     return templates.TemplateResponse(
-#         "drivers.html",
-#         {"request": request, "drivers": drivers}
-#     )
-
-
-
-
-
-
-
-
-
-
-@app.get("/teams/create", response_class=HTMLResponse)
-async def create_team(request: Request,error: str = None):
-    id_token = request.cookies.get("token")
-    error_message = "No error here"
-    user_token = None
-
-    if id_token:
-        try:
-            user_token = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
-            print("User Token:", user_token)  # Debugging output
-        except ValueError as err:
-            error_message = str(err)  # Display error message if token verification fails
-
-    return templates.TemplateResponse(
-        "add-team.html",
-        {"request": request,"error":error}
-    )
-
-def team_form(name: str = Form(...), year_founded: int = Form(...),total_pole_positions:int = Form(...),
-                total_race_wins: int = Form(...),total_constructor_titles:int = Form(...),
-                previous_season_position:int = Form(...)):
-    return Team(name=name, year_founded=year_founded,total_pole_positions=total_pole_positions,total_race_wins=total_race_wins,total_constructor_titles=total_constructor_titles,
-                  previous_season_position=previous_season_position)
-
-@app.post("/teams/create", response_class=RedirectResponse)
-def create_team(team: Team = Depends(team_form)):
-    print(team)
-    existing_team = firestore_db.collection('teams').where('name', '==', team.name).limit(1).get() 
-    if len(existing_team) > 0:
-        return RedirectResponse(
-            url="/teams/create?error=Team%20name%20exists",
-            status_code=303
-        )
-    if team.year_founded < 1900 or team.year_founded>2025:
-        return RedirectResponse(
-            url="/teams/create?error=team%20founded%20must%20be%20in%20between%20 1900%20to%20 2025",
-            status_code=303
-        )
-    if team.total_pole_positions < 0:
-        return RedirectResponse(
-            url="/teams/create?error=total_pole_positions%20must%20be%20positive",
-            status_code=303
-        )
-    if team.total_race_wins < 0:
-        return RedirectResponse(
-            url="/teams/create?error=total_race_wins%20must%20be%20positive",
-            status_code=303
-        )
-    if team.total_constructor_titles < 0:
-        return RedirectResponse(
-            url="/teams/create?error=total_constructor_titles%20must%20be%20positive",
-            status_code=303
-        )
-    if team.previous_season_position < 0:
-        return RedirectResponse(
-            url="/teams/create?error=previous_season_position%20must%20be%20positive",
-            status_code=303
-        )
-    
-    firestore_db.collection('teams').add(team.dict())
-    return RedirectResponse(
-        url="/teams/",
-        status_code=303
-    )
-
-# @app.get("/teams",response_class=HTMLResponse)
-# def get_drivers(request:Request):
-#     teams = [doc.to_dict() for doc in firestore_db.collection('teams').stream()]
-#     return templates.TemplateResponse(
-#         "teams.html",
-#         {"request": request, "teams": teams}
-#     )
-
-
-def query_form(
-    attribute: str = Form(...),
-    operator: str = Form(...),
-    value: str = Form(...)
-):
-    return Query(attribute=attribute, operator=operator, value=value)
-
-@app.get("/teams", response_class=HTMLResponse)
-def get_teams(request: Request, 
-              attribute: Optional[str] = None, 
-              operator: Optional[str] = None, 
-              value: Optional[str] = None):
-    query = firestore_db.collection('teams')
-    query_info = None
-    
-    # Apply filter if all parameters are provided
-    if attribute and operator and value:
-        # Convert value to proper type based on attribute
-        if attribute == "name":
-            typed_value = value  # Keep as string
-        else:
-            # Convert to int for numeric fields
-            try:
-                typed_value = int(value)
-            except ValueError:
-                teams = []
-                return templates.TemplateResponse(
-                    "teams.html",
-                    {"request": request, "teams": teams, "error": f"Invalid numeric value: {value}"}
-                )
-        
-        # Map operator to Firestore comparison
-        operator_map = {
-            "eq": "==",
-            "gt": ">",
-            "lt": "<",
-            "gte": ">=",
-            "lte": "<="
-        }
-        
-        if operator in operator_map:
-            query = query.where(attribute, operator_map[operator], typed_value)
-            query_info = f"{attribute} {operator_map[operator]} {value}"
-    
-    # Execute query
-    teams = [{"id": doc.id, **doc.to_dict()} for doc in query.stream()]
 
     
-    return templates.TemplateResponse(
-        "teams.html",
-        {"request": request, "teams": teams, "query_info": query_info}
-    )
-
-@app.post("/teams/query", response_class=RedirectResponse)
-def query_teams(query_params: Query = Depends(query_form)):
-    # Redirect to GET endpoint with query parameters
-    return RedirectResponse(
-        url=f"/teams?attribute={query_params.attribute}&operator={query_params.operator}&value={query_params.value}",
-        status_code=303
-    )
-
+#get request to get all drivers
 @app.get("/drivers", response_class=HTMLResponse)
 def get_drivers(request: Request, 
                 attribute: Optional[str] = None, 
@@ -274,6 +82,63 @@ def get_drivers(request: Request,
             {"request": request, "drivers": [], "error": "An error occurred"}
         )
 
+
+#get request for creating a driver
+@app.get("/drivers/create", response_class=HTMLResponse)
+async def create_driver(request: Request,error: str = None):
+    id_token = request.cookies.get("token")
+    error_message = "No error here"
+    user_token = None
+
+    if id_token:
+        try:
+            user_token = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
+            print("User Token:", user_token)  # Debugging output
+        except ValueError as err:
+            error_message = str(err)  # Display error message if token verification fails
+    query = firestore_db.collection("teams")
+    teams = [doc.to_dict() for doc in query.stream()]
+    return templates.TemplateResponse(
+        "add-driver.html",
+        {"request": request,"error":error,"teams":teams}
+    )
+
+
+#helper function to get data as pydantic model
+def driver_form(name: str = Form(...), age: int = Form(...),total_pole_positions:int = Form(...),
+                total_race_wins: int = Form(...),total_points_scored:int = Form(...),
+                total_world_titles:int = Form(...),total_fastest_laps:int = Form(...),
+                team:str = Form(...)):
+    return Driver(name=name, age=age,total_pole_positions=total_pole_positions,total_race_wins=total_race_wins,total_points_scored=total_points_scored,
+                  total_world_titles=total_world_titles,total_fastest_laps=total_fastest_laps,team=team
+                  )
+
+#post request to create a driver
+@app.post("/drivers/create", response_class=RedirectResponse)
+def create_driver(driver: Driver = Depends(driver_form)):
+    try:
+        DriverService.create_driver(driver)
+        return RedirectResponse(
+            url="/drivers",
+            status_code=303
+        )
+    except Exception as e:
+        # Correctly format the error message in the URL
+        return RedirectResponse(
+            url=f"/drivers/create?error={str(e)}",  # Convert the error to a string
+            status_code=303
+        )
+    
+
+#helper function to get pydantic model for querying 
+    
+def query_form(
+    attribute: str = Form(...),
+    operator: str = Form(...),
+    value: str = Form(...)):
+    return Query(attribute=attribute, operator=operator, value=value)
+    
+#route for querying the data 
 @app.post("/drivers/query", response_class=RedirectResponse)
 def query_drivers(query_params: Query = Depends(query_form)):
     # Redirect to GET endpoint with query parameters
@@ -282,17 +147,8 @@ def query_drivers(query_params: Query = Depends(query_form)):
         status_code=303
     )
 
-@app.get("/drivers/{driver_id}", response_class=HTMLResponse)
-def get_driver_by_id(driver_id: str, request: Request):
-    try:
-        data = DriverService.get_driver_by_id(driver_id)
-        return templates.TemplateResponse(
-            "add-driver.html",
-            {"request": request, "driver": data['driver'], "teams": data['teams']}
-        )
-    except Exception as e:
-        return HTMLResponse(content=f"Error: {str(e)}", status_code=404)
 
+#post route to update a driver
 @app.post("/drivers/{driver_id}", response_class=RedirectResponse)
 def update_driver(driver_id: str, driver: Driver = Depends(driver_form)):
     try:
@@ -308,94 +164,149 @@ def update_driver(driver_id: str, driver: Driver = Depends(driver_form)):
             status_code=303
         )
 
+
+    
+
+
+
+#get request to get driver by id
+@app.get("/drivers/{driver_id}", response_class=HTMLResponse)
+def get_driver_by_id(driver_id: str, request: Request):
+    try:
+        print("--------------hehe-----------------")
+        data = DriverService.get_driver_by_id(driver_id)
+        return templates.TemplateResponse(
+            "add-driver.html",
+            {"request": request, "driver": data['driver'], "teams": data['teams']}
+        )
+    except Exception as e:
+        return HTMLResponse(content=f"Error: {str(e)}", status_code=404)
+    
+#delete route to delete a driver
 @app.delete("/drivers/{driver_id}", response_class=HTMLResponse)
 def delete_driver(driver_id: str, request: Request):
     try:
+        print("it is here")
         DriverService.delete_driver(driver_id)
         return RedirectResponse(url="/drivers", status_code=303)
     except Exception as e:
         return HTMLResponse(content="Driver not found", status_code=404)
     
 
+#team routes
 
-
-
-
-
-
-
-
-
-@app.get("/teams/{team_id}", response_class=HTMLResponse)
-def get_team_by_id(team_id: str, request: Request):
-    doc_ref = firestore_db.collection("teams").document(team_id)
-    doc = doc_ref.get()
-
-    if not doc.exists:
-        return HTMLResponse(content="Team not found", status_code=404)
-
-    team = {"id": doc.id, **doc.to_dict()}
+#get route for listing all the teams
+@app.get("/teams", response_class=HTMLResponse)
+def get_teams(request: Request, 
+                attribute: Optional[str] = None, 
+                operator: Optional[str] = None, 
+                value: Optional[str] = None):
+    try:
+        
+        teams, query_info = TeamService.get_teams(attribute, operator, value)
+        print(query_info)
+        return templates.TemplateResponse(
+            "teams.html",
+            {"request": request, "teams": teams, "query_info": query_info}
+        )
     
+    except ValueError as e:
+        return templates.TemplateResponse(
+            "teams.html",
+            {"request": request, "teams": [], "error": str(e)}
+        )
+    except Exception as e:
+        return templates.TemplateResponse(
+            "teams.html",
+            {"request": request, "teams": [], "error": "An error occurred"}
+        )
+    
+
+
+# get route for creating the team
+@app.get("/teams/create", response_class=HTMLResponse)
+async def create_team(request: Request,error: str = None):
+    id_token = request.cookies.get("token")
+    error_message = "No error here"
+    user_token = None
+    if id_token:
+        try:
+            user_token = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
+            print("User Token:", user_token)  
+        except ValueError as err:
+            error_message = str(err)  
+
     return templates.TemplateResponse(
         "add-team.html",
-        {"request": request, "team": team}
+        {"request": request,"error":error}
     )
 
+#helper function for creating pydantic model 
+def team_form(name: str = Form(...), year_founded: int = Form(...),total_pole_positions:int = Form(...),
+                total_race_wins: int = Form(...),total_constructor_titles:int = Form(...),
+                previous_season_position:int = Form(...)):
+    return Team(name=name, year_founded=year_founded,total_pole_positions=total_pole_positions,total_race_wins=total_race_wins,total_constructor_titles=total_constructor_titles,
+                  previous_season_position=previous_season_position)
 
-@app.post("/teams/{team_id}", response_class=RedirectResponse)
-def update_team(team_id: str, team: Team = Depends(team_form)):
-    print(team)
-    teams_ref = firestore_db.collection("teams").document(team_id)
-    existing_team = teams_ref.get()
-    
-    if not existing_team.exists:
+
+#post request for creating team
+@app.post("/teams/create", response_class=RedirectResponse)
+def create_team(team: Team = Depends(team_form)):
+    try:
+        TeamService.create_team(team)
         return RedirectResponse(
-            url="/teams?error=Team%20not%20found",
+            url="/teams/",
             status_code=303
         )
-    if team.year_founded < 1900 or team.year_founded>2025:
+    except Exception as e:
         return RedirectResponse(
-            url="/teams/create?error=team%20founded%20must%20be%20in%20between%20 1900%20to%20 2025",
-            status_code=303
-        )
-    if team.total_pole_positions < 0:
-        return RedirectResponse(
-            url="/teams/create?error=total_pole_positions%20must%20be%20positive",
-            status_code=303
-        )
-    if team.total_race_wins < 0:
-        return RedirectResponse(
-            url="/teams/create?error=total_race_wins%20must%20be%20positive",
-            status_code=303
-        )
-    if team.total_constructor_titles < 0:
-        return RedirectResponse(
-            url="/teams/create?error=total_constructor_titles%20must%20be%20positive",
-            status_code=303
-        )
-    if team.previous_season_position < 0:
-        return RedirectResponse(
-            url="/teams/create?error=previous_season_position%20must%20be%20positive",
+            url=f"/teams/create?error={str(e)}",
             status_code=303
         )
     
-    teams_ref.update(team.dict())
-    
+#route for querying team data
+@app.post("/teams/query", response_class=RedirectResponse)
+def query_teams(query_params: Query = Depends(query_form)):
+    # Redirect to GET endpoint with query parameters
     return RedirectResponse(
-        url="/teams",
+        url=f"/teams?attribute={query_params.attribute}&operator={query_params.operator}&value={query_params.value}",
         status_code=303
     )
 
+#post request for updating team data
+@app.post("/teams/{team_id}", response_class=RedirectResponse)
+def update_team(team_id: str, team: Team = Depends(team_form)):
+    try:
+        print("chikki")
+        TeamService.update_team(team,team_id)
+        return RedirectResponse(
+            url="/teams",
+            status_code=303
+        )
+    except Exception as e:
+        return RedirectResponse(
+            url=f"/teams/{team_id}?error={str(e)}",  # Use f-string to insert error message
+            status_code=303
+        )
+
+
+# get route for getting team by id
+@app.get("/teams/{team_id}", response_class=HTMLResponse)
+def get_team_by_id(team_id: str, request: Request):
+    try:
+        team = TeamService.get_team_by_id(team_id)
+        return templates.TemplateResponse(
+            "add-team.html",
+            {"request": request, "team": team['team']}
+        )
+    except Exception as e:
+        return HTMLResponse(content="Team not found", status_code=404)
+    
+#delete route for deleting team    
 @app.delete("/teams/{teams_id}", response_class=HTMLResponse)
 def delete_teams(teams_id: str, request: Request):
-    doc_ref = firestore_db.collection("teams").document(teams_id)
-    doc = doc_ref.get()
-
-    if not doc.exists:
+    try:
+        TeamService.delete_team(teams_id)
+        return RedirectResponse(url="/teams", status_code=303)
+    except Exception as e:
         return HTMLResponse(content="Team not found", status_code=404)
-
-    
-    doc_ref.delete()
-
-    
-    return RedirectResponse(url="/teams", status_code=303)
