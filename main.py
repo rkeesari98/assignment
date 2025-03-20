@@ -64,12 +64,12 @@ def get_drivers(request: Request,
                 operator: Optional[str] = None, 
                 value: Optional[str] = None):
     try:
-        
+        user_logged_in = is_logged_in(request)
         drivers, query_info = DriverService.get_drivers(attribute, operator, value)
         
         return templates.TemplateResponse(
             "drivers.html",
-            {"request": request, "drivers": drivers, "query_info": query_info}
+            {"request": request, "drivers": drivers, "query_info": query_info,"user_logged_in":user_logged_in}
         )
     
     except ValueError as e:
@@ -234,11 +234,12 @@ def get_teams(request: Request,
                 operator: Optional[str] = None, 
                 value: Optional[str] = None):
     try:
+        user_logged_in = is_logged_in(request)
         teams, query_info = TeamService.get_teams(attribute, operator, value)
         print(query_info)
         return templates.TemplateResponse(
             "teams.html",
-            {"request": request, "teams": teams, "query_info": query_info}
+            {"request": request, "teams": teams, "query_info": query_info,"user_logged_in":user_logged_in}
         )
     
     except ValueError as e:

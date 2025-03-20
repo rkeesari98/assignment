@@ -236,7 +236,9 @@
                             Previous Season Position {{ team.previous_season_position }} 
                         </div>
                     </div>
-                    <button class="delete-btn" data-id="{{ team.id }}" data-name="{{ team.name }}">Delete</button>
+                    {% if user_logged_in %}
+                        <button class="delete-btn" data-id="{{ team.id }}" data-name="{{ team.name }}">Delete</button>
+                    {% endif %}
                 </li>
             {% endfor %}
         </ul>

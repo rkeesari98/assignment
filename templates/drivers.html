@@ -239,7 +239,9 @@
                             Team: {{ driver.team }}
                         </div>
                     </div>
-                    <button class="delete-btn" data-id="{{ driver.id }}" data-name="{{ driver.name }}">Delete</button>
+                    {% if user_logged_in %}
+                        <button class="delete-btn" data-id="{{ driver.id }}" data-name="{{ driver.name }}">Delete</button>
+                    {% endif %}
                 </li>
             {% endfor %}
         </ul>
