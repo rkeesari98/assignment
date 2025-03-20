@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Compare Teams</h1>
+    <form method="post">
+        <div class="row">
+            <div class="col-md-5">
+                <div class="form-group">
+                    <label for="team1">First Team:</label>
+                    <select class="form-control" id="team1" name="team1" required>
+                        <option value="">Select a team</option>
+                        {% for team in teams %}
+                        <option value="{{ team.id }}">{{ team.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2 text-center d-flex align-items-center justify-content-center">
+                <h3>VS</h3>
+            </div>
+            <div class="col-md-5">
+                <div class="form-group">
+                    <label for="team2">Second Team:</label>
+                    <select class="form-control" id="team2" name="team2" required>
+                        <option value="">Select a team</option>
+                        {% for team in teams %}
+                        <option value="{{ team.id }}">{{ team.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary">Compare</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

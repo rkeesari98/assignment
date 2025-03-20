@@ -111,3 +111,44 @@ class TeamService:
         teams = [{"id": doc.id, **doc.to_dict()} for doc in query.stream()]
         
         return teams, query_info
+    
+    @staticmethod
+    def compare_teams():
+        teams_ref = firestore_db.collection('teams')
+        teams = []
+        for doc in teams_ref.stream():
+            team_data = doc.to_dict()
+            team_data['id'] = doc.id
+            teams.append(team_data)
+        return teams
+    
+    @staticmethod 
+    def compare_teams_attributes(team1,team2)->dict:
+        team1_doc = firestore_db.collection('teams').document(team1).get()
+        team2_doc = firestore_db.collection('teams').document(team2).get()
+        
+        if not team1_doc.exists or not team2_doc.exists:
+            raise Exception("Team not found")
+        
+        team1_data = team1_doc.to_dict()
+        team1_data['id'] = team1_doc.id
+        
+        team2_data = team2_doc.to_dict()
+        team2_data['id'] = team2_doc.id
+        
+        
+        comparison = {}
+        
+        comparison['year_founded'] = 'team1' if team1_data['year_founded'] < team2_data['year_founded'] else 'team2'
+        comparison['total_pole_positions'] = 'team1' if team1_data['total_pole_positions'] > team2_data['total_pole_positions'] else 'team2'
+        comparison['total_race_wins'] = 'team1' if team1_data['total_race_wins'] > team2_data['total_race_wins'] else 'team2'
+        comparison['total_constructor_titles'] = 'team1' if team1_data['total_constructor_titles'] > team2_data['total_constructor_titles'] else 'team2'
+        
+        comparison['previous_season_position'] = 'team1' if team1_data['previous_season_position'] < team2_data['previous_season_position'] else 'team2'
+
+        result ={
+            'team1':team1_data,
+            'team2':team2_data,
+            'comparison':comparison
+        }
+        return result

@@ -114,3 +114,44 @@ class DriverService:
         drivers = [{"id": doc.id, **doc.to_dict()} for doc in query.stream()]
         
         return drivers, query_info
+    
+    @staticmethod
+    def compare_drivers()->dict:
+        drivers_ref = firestore_db.collection('drivers')
+        drivers = []
+        for doc in drivers_ref.stream():
+            driver_data = doc.to_dict()
+            driver_data['id'] = doc.id
+            drivers.append(driver_data)
+        return drivers
+    @staticmethod
+    def compare_drivers_attributes(driver1,driver2):
+        # Get driver details
+        driver1_doc = firestore_db.collection('drivers').document(driver1).get()
+        driver2_doc = firestore_db.collection('drivers').document(driver2).get()
+        
+        if not driver1_doc.exists or not driver2_doc.exists:
+            raise Exception("driver not found.")
+        
+        driver1_data = driver1_doc.to_dict()
+        driver1_data['id'] = driver1_doc.id
+        
+        driver2_data = driver2_doc.to_dict()
+        driver2_data['id'] = driver2_doc.id
+        
+
+        # Determine which stats are better
+        comparison = {}
+        comparison['age'] = 'driver1' if driver1_data['age'] < driver2_data['age'] else 'driver2'
+        comparison['poles'] = 'driver1' if driver1_data['total_pole_positions'] > driver2_data['total_pole_positions'] else 'driver2'
+        comparison['wins'] = 'driver1' if driver1_data['total_race_wins'] > driver2_data['total_race_wins'] else 'driver2'
+        comparison['points'] = 'driver1' if driver1_data['total_points_scored'] > driver2_data['total_points_scored'] else 'driver2'
+        comparison['titles'] = 'driver1' if driver1_data['total_world_titles'] > driver2_data['total_world_titles'] else 'driver2'
+        comparison['fastestLaps'] = 'driver1' if driver1_data['total_fastest_laps'] > driver2_data['total_fastest_laps'] else 'driver2'
+        result={
+            'driver1':driver1_data,
+            'driver2':driver2_data,
+            'comparison':comparison
+        }
+        return result
+    

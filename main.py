@@ -27,22 +27,23 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
+def is_logged_in(request:Request):
+    id_token = request.cookies.get("token")
+    if not id_token:
+        return False
+    try:
+        user_token = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
+        if user_token:
+            return True
+    except Exception as e:
+        return False
+
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    id_token = request.cookies.get("token")
-    error_message = "No error here"
-    user_token = None
-
-    if id_token:
-        try:
-            user_token = google.oauth2.id_token.verify_firebase_token(id_token, firebase_request_adapter)
-            print("User Token:", user_token)  # Debugging output
-        except ValueError as err:
-            error_message = str(err)  # Display error message if token verification fails
 
     return templates.TemplateResponse(
         "main.html",
-        {"request": request, "user_token": user_token, "error_message": error_message},
+        {"request": request}
     )
 
 
@@ -147,11 +148,13 @@ def query_drivers(query_params: Query = Depends(query_form)):
         status_code=303
     )
 
-
 #post route to update a driver
 @app.post("/drivers/{driver_id}", response_class=RedirectResponse)
-def update_driver(driver_id: str, driver: Driver = Depends(driver_form)):
+def update_driver(request:Request,driver_id: str, driver: Driver = Depends(driver_form)):
     try:
+        if not is_logged_in(request):
+            print("not logged")
+            return RedirectResponse(url="/", status_code=303)
         DriverService.update_driver(driver,driver_id)
         return RedirectResponse(
             url="/drivers",
@@ -165,15 +168,10 @@ def update_driver(driver_id: str, driver: Driver = Depends(driver_form)):
         )
 
 
-    
-
-
-
 #get request to get driver by id
 @app.get("/drivers/{driver_id}", response_class=HTMLResponse)
 def get_driver_by_id(driver_id: str, request: Request):
     try:
-        print("--------------hehe-----------------")
         data = DriverService.get_driver_by_id(driver_id)
         return templates.TemplateResponse(
             "add-driver.html",
@@ -186,12 +184,46 @@ def get_driver_by_id(driver_id: str, request: Request):
 @app.delete("/drivers/{driver_id}", response_class=HTMLResponse)
 def delete_driver(driver_id: str, request: Request):
     try:
-        print("it is here")
+        if not is_logged_in(request):
+            print("trigger")
+            return RedirectResponse(url="/", status_code=303)
         DriverService.delete_driver(driver_id)
         return RedirectResponse(url="/drivers", status_code=303)
     except Exception as e:
         return HTMLResponse(content="Driver not found", status_code=404)
     
+#route for comparing drivers
+@app.get("/compare_drivers")
+async def compare_drivers(request: Request):
+    try:
+        drivers = DriverService.compare_drivers()
+        return templates.TemplateResponse("compare_drivers.html", {
+            "request": request,
+            "drivers": drivers
+        })
+    except Exception as e:
+        return HTMLResponse(content="Something went wrong please try again", status_code=404) 
+
+#route for comparing drivers
+@app.post("/compare_drivers")
+async def compare_drivers(request: Request, driver1: str = Form(...), driver2: str = Form(...)):
+    
+    try:
+        result = DriverService.compare_drivers_attributes(driver1,driver2)
+        return templates.TemplateResponse("compare_drivers_result.html", {
+            "request": request,
+            "driver1": result['driver1'],
+            "driver2": result['driver2'],
+            "comparison": result['comparison']
+        })
+    except Exception as e:
+        return HTMLResponse(content=str(e), status_code=404)  
+
+
+
+
+
+
 
 #team routes
 
@@ -202,7 +234,6 @@ def get_teams(request: Request,
                 operator: Optional[str] = None, 
                 value: Optional[str] = None):
     try:
-        
         teams, query_info = TeamService.get_teams(attribute, operator, value)
         print(query_info)
         return templates.TemplateResponse(
@@ -227,7 +258,6 @@ def get_teams(request: Request,
 @app.get("/teams/create", response_class=HTMLResponse)
 async def create_team(request: Request,error: str = None):
     id_token = request.cookies.get("token")
-    error_message = "No error here"
     user_token = None
     if id_token:
         try:
@@ -238,7 +268,7 @@ async def create_team(request: Request,error: str = None):
 
     return templates.TemplateResponse(
         "add-team.html",
-        {"request": request,"error":error}
+        {"request": request,"error":error_message}
     )
 
 #helper function for creating pydantic model 
@@ -275,9 +305,10 @@ def query_teams(query_params: Query = Depends(query_form)):
 
 #post request for updating team data
 @app.post("/teams/{team_id}", response_class=RedirectResponse)
-def update_team(team_id: str, team: Team = Depends(team_form)):
+def update_team(request:Request,team_id: str, team: Team = Depends(team_form)):
     try:
-        print("chikki")
+        if not is_logged_in(request):
+            return RedirectResponse(url="/", status_code=303)
         TeamService.update_team(team,team_id)
         return RedirectResponse(
             url="/teams",
@@ -306,7 +337,37 @@ def get_team_by_id(team_id: str, request: Request):
 @app.delete("/teams/{teams_id}", response_class=HTMLResponse)
 def delete_teams(teams_id: str, request: Request):
     try:
+        if not is_logged_in(request):
+            return RedirectResponse(url="/", status_code=303)
         TeamService.delete_team(teams_id)
         return RedirectResponse(url="/teams", status_code=303)
     except Exception as e:
         return HTMLResponse(content="Team not found", status_code=404)
+    
+
+#route for comparing teams
+@app.get("/compare_teams")
+async def compare_teams_page(request: Request):
+
+    try:
+        teams = TeamService.compare_teams()
+        return templates.TemplateResponse("compare_teams.html", {
+            "request": request,
+            "teams": teams
+        })
+    except Exception as e:
+        return HTMLResponse(content="something went wrong",status_code=404)
+
+@app.post("/compare_teams")
+async def compare_teams(request: Request, team1: str = Form(...), team2: str = Form(...)):
+    
+    try:
+        result = TeamService.compare_teams_attributes(team1,team2)
+        return templates.TemplateResponse("compare_teams_result.html", {
+            "request": request,
+            "team1": result['team1'],
+            "team2": result['team2'],
+            "comparison": result['comparison']
+        })
+    except Exception as e:
+        return HTMLResponse(content=str(e),status_code=404)

@@ -1,0 +1,41 @@
+<!-- compare_drivers.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Compare Drivers</h1>
+    <form method="post">
+        <div class="row">
+            <div class="col-md-5">
+                <div class="form-group">
+                    <label for="driver1">First Driver:</label>
+                    <select class="form-control" id="driver1" name="driver1" required>
+                        <option value="">Select a driver</option>
+                        {% for driver in drivers %}
+                        <option value="{{ driver.id }}">{{ driver.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2 text-center d-flex align-items-center justify-content-center">
+                <h3>VS</h3>
+            </div>
+            <div class="col-md-5">
+                <div class="form-group">
+                    <label for="driver2">Second Driver:</label>
+                    <select class="form-control" id="driver2" name="driver2" required>
+                        <option value="">Select a driver</option>
+                        {% for driver in drivers %}
+                        <option value="{{ driver.id }}">{{ driver.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary">Compare</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
